@@ -18,14 +18,18 @@ informacoes_filmes = []
 for pagina in range(1, num_paginas+1):
     url = base_url + str(pagina) + "&sort=list_order,asc"
 
+    # Fazendo a requisição HTTP para a página
     response = requests.get(url)
 
+    # Criando um objeto BeautifulSoup com o conteúdo da página
     soup = BeautifulSoup(response.text, "html.parser")
 
+    # Encontrando todos os elementos <div> que contenham a classe "lister-item mode-detail"
     filmes = soup.find_all("div", class_="lister-item mode-detail")
 
+    # Iterando sobre os elementos encontrados e extraindo as informações dos filmes
     for filme in filmes:
-        # Extraindo  elemento âncora que contém o nome do filme
+        # Extraindo o elemento âncora que contém o nome do filme
         movie_name_anchor = filme.find("h3", class_="lister-item-header").find("a")
 
         # Extraindo o ID do filme a partir do atributo href
@@ -52,13 +56,22 @@ for pagina in range(1, num_paginas+1):
         metascore_element = filme.find("span", class_="metascore")
         metascore = metascore_element.text.strip() if metascore_element else ""
 
-        # Extraindo o diretor/diretores do filme
-        director_element = filme.find_all("p")[1].find_all("a")
-        director = [direc.text.strip() for direc in director_element]
+        # Extraindo nome dos atores e diretores
+        elements = filme.find_all("p")[2].find_all("a")
+        directors = []
+        stars = []
+        current_role = None
+        for element in elements:
+            text = element.previous_sibling.strip()
+            if text == "Director:" or text == "Directors:":
+                current_role = "director"
+            elif text == "Stars:":
+                current_role = "star"
 
-        # Extraindo os atores principais do filme
-        stars_elements = filme.find_all("p")[2].find_all("a")
-        stars = [star.text.strip() for star in stars_elements]
+            if current_role == "director":
+                directors.append(element.text.strip())
+            elif current_role == "star":
+                stars.append(element.text.strip())
 
         # Extraindo a arrecadação do filme
         gross_element = filme.find("span", class_="text-muted text-small")
@@ -71,6 +84,7 @@ for pagina in range(1, num_paginas+1):
         # Extraindo a nota do IMDB
         imdb_rating = filme.find("div", class_="ipl-rating-star small").find("span", class_="ipl-rating-star__rating").text.strip()
 
+        # Criando um dicionário com as informações do filme
         filme_info = {
             "name": movie_name,
             "id": movie_id,
@@ -79,7 +93,7 @@ for pagina in range(1, num_paginas+1):
             "certificate": certificate,
             "poster_link": poster_link,
             "metascore": metascore,
-            "director": director,
+            "directors": directors,
             "stars": stars,
             "gross": gross,
             "genres": genres,
