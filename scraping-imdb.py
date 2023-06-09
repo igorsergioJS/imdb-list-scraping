@@ -7,21 +7,19 @@ from bs4 import BeautifulSoup
 
 link_list = "https://www.imdb.com/list/ls556047343"
 
-base_url = link_list + "/?st_dt=&mode=detail&page="
-
-# Número de páginas a serem obtidas
+# Número de páginas a serem obtidas 
 num_paginas = 1
 
-# Lista para armazenar as informações dos filmes
+
+base_url = link_list + "/?st_dt=&mode=detail&page="
+
 informacoes_filmes = []
 
 for pagina in range(1, num_paginas+1):
     url = base_url + str(pagina) + "&sort=list_order,asc"
 
-    # Fazendo a requisição HTTP para a página
     response = requests.get(url)
 
-    # Criando um objeto BeautifulSoup com o conteúdo da página
     soup = BeautifulSoup(response.text, "html.parser")
 
     # Encontrando todos os elementos <div> que contenham a classe "lister-item mode-detail"
@@ -74,30 +72,31 @@ for pagina in range(1, num_paginas+1):
                 stars.append(element.text.strip())
 
         # Extraindo a arrecadação do filme
-        gross_element = filme.find("span", class_="text-muted text-small")
-        gross = gross_element.text.strip().split(":")[1].strip() if gross_element else ""
+        gross_element = filme.find("span", class_="text-muted", string="Gross:")
+        gross = gross_element.find_next_sibling("span").text.strip() if gross_element else ""
 
         # Extraindo os principais gêneros do filme
-        genres_elements = filme.find("span", class_="genre").find_all("a")
-        genres = [genre.text.strip() for genre in genres_elements]
+        genres_element = filme.find("span", class_="genre")
+        genres_text = genres_element.text.strip()
+        genres = [genre.strip() for genre in genres_text.split(",")]
 
         # Extraindo a nota do IMDB
         imdb_rating = filme.find("div", class_="ipl-rating-star small").find("span", class_="ipl-rating-star__rating").text.strip()
 
-        # Criando um dicionário com as informações do filme
         filme_info = {
-            "name": movie_name,
+
             "id": movie_id,
+            "name": movie_name,
+            "imdb_rating": imdb_rating,
             "year": year,
             "runtime": runtime,
-            "certificate": certificate,
-            "poster_link": poster_link,
-            "metascore": metascore,
+            "genres": genres,
             "directors": directors,
             "stars": stars,
+            "certificate": certificate,
+            "metascore": metascore,
             "gross": gross,
-            "genres": genres,
-            "imdb_rating": imdb_rating
+            "poster_link": poster_link
         }
 
         informacoes_filmes.append(filme_info)
@@ -107,7 +106,7 @@ with open("ex_file.json", "w", encoding="utf-8") as json_file:
     json.dump(informacoes_filmes, json_file, indent=4, ensure_ascii=False)
 
 # Salvando as informações dos filmes em um arquivo CSV
-csv_headers = ["name", "id", "year", "runtime", "certificate", "poster_link", "metascore", "director", "stars", "gross", "genres", "imdb_rating"]
+csv_headers = ["id", "name", "imdb_rating", "year", "runtime", "genres", "directors", "stars", "certificate", "metascore", "gross", "poster_link"]
 csv_data = [list(filme.values()) for filme in informacoes_filmes]
 
 with open("ex_file.csv", "w", newline="", encoding="utf-8") as csv_file:
